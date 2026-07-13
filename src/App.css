@@ -1,0 +1,139 @@
+.Header{
+  background-color: aliceblue;
+  font: 20px;
+  padding: 20px;
+  text-align: center;
+  border: 20px;
+}
+
+.Summary{
+  margin-top: 20px;
+  margin-bottom: 20px;
+}
+  
+body{
+
+  margin:0;
+  font-family:Arial, Helvetica, sans-serif;
+  background:#111827;
+  color:white;
+
+}
+
+.login-page{
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+
+}
+.login-card{
+
+  width:420px;
+
+  margin-top:60px;
+
+  background:rgba(255,255,255,0.06);
+
+  backdrop-filter:blur(10px);
+
+  border-radius:20px;
+
+  padding:40px;
+
+  text-align:center;
+
+  box-shadow:0 0 30px rgba(0,0,0,.4);
+
+}
+.button{
+
+  width:180px;
+
+  height:45px;
+
+  border:none;
+
+  border-radius:12px;
+
+  background:#2563eb;
+
+  color:white;
+
+  font-size:17px;
+
+  cursor:pointer;
+
+  margin:10px;
+
+  transition:.3s;
+
+}
+input{
+
+  width:90%;
+
+  padding:14px;
+
+  border-radius:10px;
+
+  border:none;
+
+  margin-top:10px;
+
+  font-size:16px;
+
+}
+.login-card h2{
+
+  margin-bottom:10px;
+
+  font-size:34px;
+
+}
+.login-card p{
+
+  color:#cfcfcf;
+
+  margin-bottom:35px;
+
+}
+.page{
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+.page-card{
+
+  width:700px;
+
+  margin-top:40px;
+
+  padding:40px;
+
+  background:rgba(255,255,255,0.06);
+
+  border-radius:20px;
+
+  backdrop-filter:blur(10px);
+
+  box-shadow:0 8px 25px rgba(0,0,0,0.4);
+
+  text-align:center;
+
+}
+.page-card h2{
+  margin-bottom:10px;
+}
+
+.page-card p{
+  color:#cfcfcf;
+  margin-bottom:30px;
+}
+.member-box{
+
+  margin-bottom:20px;
+
+}
+ 
