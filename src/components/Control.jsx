@@ -15,8 +15,7 @@ function Control({ transcript, setTranscript }) {
   const recognition = useRef(null);
 
   async function startMeeting() {
-
-    console.log("Joining Agora...");
+     console.log("Joining Agora...");
 
     await client.join(APP_ID, CHANNEL, TOKEN, null);
 
@@ -96,7 +95,7 @@ function Control({ transcript, setTranscript }) {
           </button>
 
           <button
-            className="button"
+           className="button"
             onClick={stopMeeting}
           >
             ■

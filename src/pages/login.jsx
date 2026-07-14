@@ -43,7 +43,7 @@ function Login() {
     try {
 
       const response = await axios.post(
-        "http://project-wt9v.onrender.com/api/auth/login",
+        "https://project-wt9v.onrender.com/api/auth/login",
         {
           email: loginEmail,
           password: loginPassword
@@ -53,11 +53,11 @@ function Login() {
       // Save JWT Token
       localStorage.setItem("token", response.data.token);
 
-      alert(response.data.message);
+      
 
       navigate("/home", {
         state: {
-          username: loginEmail
+          username: response. data.user.name
         }
       });
 
@@ -73,7 +73,7 @@ function Login() {
 
   // ---------------- REGISTER ----------------
 
-  async function registerUser() {
+  const registerUser = async() => {
 
     if (registerName.trim() === "") {
       alert("Please enter your name.");
@@ -101,24 +101,23 @@ function Login() {
     }
 
     try {
-
-      const response = await axios.post(
-        "http://project-wt9v.onrender.com/api/auth/register",
+      console.log("registerName", registerName,registerEmail,registerPassword)
+    await axios.post(
+        "https://project-wt9v.onrender.com/api/auth/register",
         {
           name: registerName,
           email: registerEmail,
           password: registerPassword
         }
-      );
-
-      alert(response.data.message);
-
-      navigate("/home", {
-        state: {
-          username: registerName
-        }
-      });
-
+      ).then((res)=> {
+        console.log("res", res.data)
+         
+        navigate("/home", {
+          state: {
+            username: registerName
+          }
+        });
+      })
     }
 
     catch (error) {
@@ -232,7 +231,7 @@ function Login() {
 
             <button
               className="button"
-              onClick={registerUser}
+              onClick={() => registerUser()}
             >
               Register
             </button>
