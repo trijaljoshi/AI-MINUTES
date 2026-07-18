@@ -2,7 +2,7 @@ function Text({ transcript }) {
 
     return (
   
-      <textarea
+      <textarea placeholder="Transcripts will appear here...."
         rows="12"
         cols="100"
         value={transcript}

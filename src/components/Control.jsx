@@ -1,112 +1,169 @@
 import { useState, useRef } from "react";
 import AgoraRTC from "agora-rtc-sdk-ng";
-import { APP_ID, TOKEN, CHANNEL } from "../config";
+import axios from "axios";
+import { APP_ID, CHANNEL } from "../config";
 import client from "../agora";
 
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
 
 function Control({ transcript, setTranscript }) {
-
   const [isListening, setIsListening] = useState(false);
 
   const microphoneTrack = useRef(null);
-
   const recognition = useRef(null);
+  const joining = useRef(false);
 
   async function startMeeting() {
-     console.log("Joining Agora...");
+    if (joining.current || isListening) return;
 
-    await client.join(APP_ID, CHANNEL, TOKEN, null);
+    joining.current = true;
 
-    console.log("Joined!");
+    try {
+      // Get Agora Token
+      const response = await axios.get(
+        "https://project-wt9v.onrender.com/api/agora/token",
+        {
+          params: {
+            channel: CHANNEL,
+            uid: 1,
+          },
+        }
+      );
 
-    microphoneTrack.current =
-      await AgoraRTC.createMicrophoneAudioTrack();
+      const agoraToken = response.data.token;
 
-    console.log("Microphone Created!");
+      console.log("Agora Token:", agoraToken);
 
-    await client.publish([microphoneTrack.current]);
+      // Leave previous session if connected
+      try {
+        await client.leave();
+      } catch (e) {}
 
-    console.log("Published!");
+      console.log("Joining Agora...");
 
-    recognition.current = new SpeechRecognition();
+      await client.join(APP_ID, CHANNEL, agoraToken, 1);
 
-    recognition.current.continuous = true;
-    recognition.current.interimResults = true;
-    recognition.current.lang = "en-US";
+      console.log("Joined!");
 
-    recognition.current.onresult = (event) => {
+      microphoneTrack.current =
+        await AgoraRTC.createMicrophoneAudioTrack();
 
-      let text = "";
+      console.log("Microphone Created!");
 
-      for (let i = 0; i < event.results.length; i++) {
-        text += event.results[i][0].transcript + " ";
+      await client.publish([microphoneTrack.current]);
+
+      console.log("Published!");
+
+      // Start Agora Speech-to-Text
+      const sttResponse = await axios.post(
+        "https://project-wt9v.onrender.com/api/speech/start",
+        {
+          channel: CHANNEL,
+          uid: 1,
+        }
+      );
+
+      console.log("Speech Started:", sttResponse.data);
+
+      // Browser Speech Recognition
+      if (SpeechRecognition) {
+        recognition.current = new SpeechRecognition();
+
+        recognition.current.continuous = true;
+        recognition.current.interimResults = true;
+        recognition.current.lang = "en-US";
+
+        recognition.current.onstart = () => {
+          console.log("🎤 SpeechRecognition Started");
+        };
+
+        recognition.current.onend = () => {
+          console.log(
+            "🛑 SpeechRecognition Ended at",
+            new Date().toLocaleTimeString()
+          );
+        };
+
+        recognition.current.onerror = (event) => {
+          console.log("❌ SpeechRecognition Error:", event.error);
+        };
+
+        recognition.current.onresult = (event) => {
+          console.log("========== RESULT EVENT ==========");
+          console.log(event);
+
+          let text = "";
+
+          for (
+            let i = event.resultIndex;
+            i < event.results.length;
+            i++
+          ) {
+            text += event.results[i][0].transcript + " ";
+          }
+
+          console.log("Recognized Text:", text);
+
+          setTranscript((prev) => prev + text);
+        };
+
+        recognition.current.start();
+      } else {
+        console.log("SpeechRecognition API not supported.");
       }
 
-      setTranscript(text);
-
-    };
-
-    recognition.current.start();
-
-    setIsListening(true);
-
+      setIsListening(true);
+    } catch (error) {
+      console.error("Error starting meeting:", error);
+    } finally {
+      joining.current = false;
+    }
   }
 
   async function stopMeeting() {
+    try {
+      if (recognition.current) {
+        recognition.current.stop();
+        recognition.current = null;
+      }
 
-    if (recognition.current) {
-      recognition.current.stop();
+      if (microphoneTrack.current) {
+        await client.unpublish([microphoneTrack.current]);
+        microphoneTrack.current.close();
+        microphoneTrack.current = null;
+      }
+
+      await client.leave();
+
+      setIsListening(false);
+
+      console.log("Meeting Ended");
+    } catch (error) {
+      console.error(error);
     }
-
-    if (microphoneTrack.current) {
-      await client.unpublish([microphoneTrack.current]);
-      microphoneTrack.current.close();
-    }
-
-    await client.leave();
-
-    setIsListening(false);
-
-    console.log("Meeting Ended");
-
   }
 
   return (
-
     <div className="control">
-
       {!isListening ? (
-
         <button
-          className="button"
+          className="start-button"
           onClick={startMeeting}
         >
-          Start Recording
+          🎤 Start Recording
         </button>
-
       ) : (
-
-        <>
-
-          <button disabled>
-            Listening...
-          </button>
-
+        <div className="recording-container">
           <button
-           className="button"
+            className="stop-button"
             onClick={stopMeeting}
           >
-            ■
+            ⏹ Stop Recording
           </button>
-
-        </>
-
+        </div>
       )}
-
     </div>
-
   );
 }
 

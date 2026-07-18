@@ -4,10 +4,10 @@ import Header from "../components/Header";
 import axios from "axios";
 
 function Login() {
-
   const navigate = useNavigate();
 
   const [option, setOption] = useState("");
+  const [loading, setLoading] = useState(false);
 
   // Login State
   const [loginEmail, setLoginEmail] = useState("");
@@ -18,13 +18,11 @@ function Login() {
   const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
 
-  // Email Validation Regex
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   // ---------------- LOGIN ----------------
 
   async function loginUser() {
-
     if (loginEmail.trim() === "") {
       alert("Please enter your email.");
       return;
@@ -41,40 +39,33 @@ function Login() {
     }
 
     try {
+      setLoading(true);
 
       const response = await axios.post(
         "https://project-wt9v.onrender.com/api/auth/login",
         {
           email: loginEmail,
-          password: loginPassword
+          password: loginPassword,
         }
       );
 
-      // Save JWT Token
       localStorage.setItem("token", response.data.token);
-
-      
 
       navigate("/home", {
         state: {
-          username: response. data.user.name
-        }
+          username: response.data.user.name,
+        },
       });
-
-    }
-
-    catch (error) {
-
+    } catch (error) {
       alert(error.response?.data?.message || "Login Failed");
-
+    } finally {
+      setLoading(false);
     }
-
   }
 
   // ---------------- REGISTER ----------------
 
-  const registerUser = async() => {
-
+  async function registerUser() {
     if (registerName.trim() === "") {
       alert("Please enter your name.");
       return;
@@ -101,49 +92,40 @@ function Login() {
     }
 
     try {
-      console.log("registerName", registerName,registerEmail,registerPassword)
-    await axios.post(
+      setLoading(true);
+
+      await axios.post(
         "https://project-wt9v.onrender.com/api/auth/register",
         {
           name: registerName,
           email: registerEmail,
-          password: registerPassword
+          password: registerPassword,
         }
-      ).then((res)=> {
-        console.log("res", res.data)
-         
-        navigate("/home", {
-          state: {
-            username: registerName
-          }
-        });
-      })
-    }
+      );
 
-    catch (error) {
-
+      navigate("/home", {
+        state: {
+          username: registerName,
+        },
+      });
+    } catch (error) {
       alert(error.response?.data?.message || "Registration Failed");
-
+    } finally {
+      setLoading(false);
     }
-
   }
 
   return (
-
     <div className="login-page">
-
       <div className="header">
         <Header />
         <hr />
       </div>
 
       <div className="login-card">
-
         <h2>Welcome Back 👋</h2>
 
-        <p>
-          Generate meeting minutes automatically using AI
-        </p>
+        <p>Generate meeting minutes automatically using AI</p>
 
         <button
           className="button"
@@ -159,14 +141,13 @@ function Login() {
           Register
         </button>
 
-        <br /><br />
+        <br />
+        <br />
 
         {/* LOGIN FORM */}
 
         {option === "login" && (
-
           <div>
-
             <input
               type="email"
               placeholder="Enter Email"
@@ -174,7 +155,8 @@ function Login() {
               onChange={(e) => setLoginEmail(e.target.value)}
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <input
               type="password"
@@ -183,25 +165,22 @@ function Login() {
               onChange={(e) => setLoginPassword(e.target.value)}
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <button
               className="button"
               onClick={loginUser}
+              disabled={loading}
             >
-              Login
+              {loading ? "Logging in..." : "Login"}
             </button>
-
           </div>
-
         )}
+                {/* REGISTER FORM */}
 
-        {/* REGISTER FORM */}
-
-        {option === "register" && (
-
+                {option === "register" && (
           <div>
-
             <input
               type="text"
               placeholder="Enter Name"
@@ -209,7 +188,8 @@ function Login() {
               onChange={(e) => setRegisterName(e.target.value)}
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <input
               type="email"
@@ -218,7 +198,8 @@ function Login() {
               onChange={(e) => setRegisterEmail(e.target.value)}
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <input
               type="password"
@@ -227,25 +208,39 @@ function Login() {
               onChange={(e) => setRegisterPassword(e.target.value)}
             />
 
-            <br /><br />
+            <br />
+            <br />
 
             <button
               className="button"
-              onClick={() => registerUser()}
+              onClick={registerUser}
+              disabled={loading}
             >
-              Register
+              {loading ? "Registering..." : "Register"}
             </button>
-
           </div>
-
         )}
-
       </div>
 
+      {/* Loading Overlay */}
+
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loader-box">
+            <div className="spinner"></div>
+
+            <h3>
+              {option === "login"
+                ? "Logging in..."
+                : "Registering..."}
+            </h3>
+
+            <p>Please wait while we process your request.</p>
+          </div>
+        </div>
+      )}
     </div>
-
   );
-
 }
 
 export default Login;

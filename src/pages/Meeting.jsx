@@ -1,16 +1,25 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "../components/Header";
 import Control from "../components/Control";
 import Text from "../components/Text";
+import socket from "../socket";
 
 function Meeting() {
-
   const [transcript, setTranscript] = useState("");
+
+  useEffect(() => {
+    socket.on("transcript", (data) => {
+      setTranscript(data.text);
+    });
+
+    return () => {
+      socket.off("transcript");
+    };
+  }, []);
 
   return (
     <div>
-
-      <div className="header">
+     <div className="header">
         <Header />
         <hr />
       </div>
@@ -21,7 +30,6 @@ function Meeting() {
       />
 
       <Text transcript={transcript} />
-
     </div>
   );
 }
