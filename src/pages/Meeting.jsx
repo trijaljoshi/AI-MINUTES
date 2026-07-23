@@ -8,26 +8,36 @@ function Meeting() {
   const [transcript, setTranscript] = useState("");
 
   useEffect(() => {
-    socket.on("transcript", (data) => {
-      setTranscript(data.text);
-    });
+    const handleTranscript = (data) => {
+      if (!data?.text) return;
+
+      setTranscript((prev) =>
+        prev ? prev + " " + data.text : data.text
+      );
+    };
+
+    socket.on("transcript", handleTranscript);
 
     return () => {
-      socket.off("transcript");
+      socket.off("transcript", handleTranscript);
     };
   }, []);
 
   return (
     <div>
-     <div className="header">
+      <div className="header">
         <Header />
         <hr />
       </div>
+
+      <br />
 
       <Control
         transcript={transcript}
         setTranscript={setTranscript}
       />
+
+      <br />
 
       <Text transcript={transcript} />
     </div>

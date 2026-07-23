@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import axios from "axios";
 import Header from "../components/Header";
 
 function Home() {
@@ -11,6 +12,7 @@ function Home() {
 
   const [showForm, setShowForm] = useState(false);
   const [showMeetingButton, setShowMeetingButton] = useState(false);
+  const [meetingId,setMeetingId]= useState(null);
 
   const [members, setMembers] = useState([
     {
@@ -57,12 +59,13 @@ function Home() {
 
   }
 
-  function submitMembers() {
+  async function submitMembers() {
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-
+  
+    // Validate members
     for (let member of members) {
-
+  
       if (
         member.name.trim() === "" ||
         member.email.trim() === ""
@@ -70,39 +73,66 @@ function Home() {
         alert("Please fill all member details.");
         return;
       }
-
+  
       if (!emailRegex.test(member.email)) {
         alert("Please enter a valid email address.");
         return;
       }
-
     }
-
-    // Check duplicate emails
-    const emails = members.map(member => member.email);
-
+  
+    // Check duplicate emails in current frontend list
+    const emails = members.map((member) =>
+      member.email.trim().toLowerCase()
+    );
+  
     const uniqueEmails = new Set(emails);
-
+  
     if (emails.length !== uniqueEmails.size) {
       alert("Duplicate email addresses are not allowed.");
       return;
     }
-
-    console.log("Members:", members);
-
-    setShowForm(false);
-
-    setShowMeetingButton(true);
-
+  
+    try {
+  
+      const response = await axios.post(
+        "https://project-wt9v.onrender.com/api/meeting",
+        {
+          meetingId: meetingId,
+          members: members,
+        }
+      );
+  
+      console.log("Backend response:", response.data);
+  
+      // Save meeting ID after first submit
+      if (!meetingId) {
+        setMeetingId(response.data.meetingId);
+      }
+  
+      setShowForm(false);
+      setShowMeetingButton(true);
+  
+      alert("Members submitted successfully!");
+  
+    } catch (error) {
+  
+      console.error(
+        "Meeting API Error:",
+        error
+      );
+  
+      alert(
+        error.response?.data?.message ||
+        "Failed to save members"
+      );
+    }
   }
-
   return (
 
     <div className="page">
 
       <div className="header">
         <Header />
-        <hr />
       </div>
 
       <div className="page-card">
