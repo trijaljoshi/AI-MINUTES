@@ -11,14 +11,14 @@ function Minutes() {
   const handleGeneratePdf = async () => {
     try {
       const response = await axios.post(
-        "https://project-wt9v.onrender.com/api/pdf/generate",
-        {
-          geminiResponse: summary,
-        },
-        {
-          responseType: "blob",
-        }
-      );
+  "https://project-wt9v.onrender.com/api/pdf/generate",
+  {
+    geminiResponse: summary,
+  },
+  {
+    responseType: "blob",
+  }
+);
 
       const blob = new Blob([response.data], {
         type: "application/pdf",

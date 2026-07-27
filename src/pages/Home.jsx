@@ -215,7 +215,8 @@ function Home() {
               navigate("/meeting", {
                 state: {
                   username: username,
-                  members: members
+                  members: members, 
+                  role:"host"
                 }
               })
             }

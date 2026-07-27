@@ -6,7 +6,7 @@ import { APP_ID } from "../config";
 import client from "../agora";
 import { decodeSTT } from "../pages/utils/decodeSTT";
 
-function Control({ transcript, setTranscript }) {
+function Control({ role, transcript, setTranscript }) {
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -148,6 +148,7 @@ function Control({ transcript, setTranscript }) {
   }
   return (
     <>
+    {role === "host" && (
       <div className="control">
         {!isListening ? (
           <button className="start-button" onClick={startMeeting}>
@@ -161,6 +162,7 @@ function Control({ transcript, setTranscript }) {
           </div>
         )}
       </div>
+    )}
 
       {loading && (
         <div className="loading-overlay">

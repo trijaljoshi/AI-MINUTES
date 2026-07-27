@@ -33,7 +33,9 @@ function Meeting() {
       <br />
 
       <Control
+
         transcript={transcript}
+        role={role}
         setTranscript={setTranscript}
       />
 
