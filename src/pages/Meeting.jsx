@@ -1,47 +1,56 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
+import { useLocation, useParams } from "react-router-dom";
 import Header from "../components/Header";
 import Control from "../components/Control";
-import Text from "../components/Text";
-import socket from "../socket";
 
 function Meeting() {
+  const location = useLocation();
+  const { meetingId } = useParams();
+
+  const username = location.state?.username || "";
+  const email = location.state?.email || "";
+  const role = location.state?.role || "guest";
+  const title = location.state?.title || "AI MINUTES OF MEETING";
+
   const [transcript, setTranscript] = useState("");
 
-  useEffect(() => {
-    const handleTranscript = (data) => {
-      if (!data?.text) return;
-
-      setTranscript((prev) =>
-        prev ? prev + " " + data.text : data.text
-      );
-    };
-
-    socket.on("transcript", handleTranscript);
-
-    return () => {
-      socket.off("transcript", handleTranscript);
-    };
-  }, []);
-
   return (
-    <div>
+    <div className="page">
       <div className="header">
         <Header />
-        <hr />
       </div>
 
-      <br />
+      <div className="page-card">
+        <h2>Meeting Title: {title}</h2>
 
-      <Control
+        {username && (
+          <p>
+            <strong>Host:</strong> {username}
+          </p>
+        )}
 
-        transcript={transcript}
-        role={role}
-        setTranscript={setTranscript}
-      />
+        <p>
+          <strong>Meeting ID:</strong> {meetingId}
+        </p>
 
-      <br />
+        <Control
+          role={role}
+          email={email}
+          meetingId={meetingId}
+          transcript={transcript}
+          setTranscript={setTranscript}
+        />
 
-      <Text transcript={transcript} />
+        <br />
+
+        <textarea
+          rows={10}
+          cols={70}
+          value={transcript}
+          readOnly
+          placeholder="Transcript will appear here..."
+        />
+      </div>
     </div>
   );
 }

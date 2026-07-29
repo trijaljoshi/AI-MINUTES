@@ -6,7 +6,13 @@ import { APP_ID } from "../config";
 import client from "../agora";
 import { decodeSTT } from "../pages/utils/decodeSTT";
 
-function Control({ role, transcript, setTranscript }) {
+function Control({
+  role,
+  email,
+  meetingId,
+  transcript,
+  setTranscript,
+})  {
   const [isListening, setIsListening] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -50,12 +56,21 @@ function Control({ role, transcript, setTranscript }) {
     try {
       setTranscript("");
 
-      const response = await axios.get(
-        "https://project-wt9v.onrender.com/api/agora/token"
+      console.log("Meeting ID:", meetingId);
+      console.log("Email:", email);
+      
+      const response = await axios.post(
+        `https://project-wt9v.onrender.com/api/meeting/${meetingId}/join`,
+        {
+          email,
+        }
       );
-
-      const { token: agoraToken, channel, uid } = response.data;
-
+      
+      const {
+        token: agoraToken,
+        agoraChannel: channel,
+        uid,
+      } = response.data;
       channelRef.current = channel;
       uidRef.current = uid;
 
@@ -66,7 +81,7 @@ function Control({ role, transcript, setTranscript }) {
       client.off("stream-message", handleStreamMessage);
       client.on("stream-message", handleStreamMessage);
 
-      await client.join(APP_ID, channel, agoraToken, uid);
+      await client.join(APP_ID, meetingId, agoraToken, uid);
 
       microphoneTrack.current =
         await AgoraRTC.createMicrophoneAudioTrack();
@@ -146,31 +161,30 @@ function Control({ role, transcript, setTranscript }) {
       console.error(err);
     }
   }
+
   return (
     <>
-    {role === "host" && (
-      <div className="control">
-        {!isListening ? (
-          <button className="start-button" onClick={startMeeting}>
-            🎤 Start Recording
-          </button>
-        ) : (
-          <div className="recording-container">
-            <button className="stop-button" onClick={stopMeeting}>
-              ⏹ Stop Recording
+       
+        <div className="control">
+          {!isListening ? (
+            <button className="start-button" onClick={startMeeting}>
+              🎤 Start Recording
             </button>
-          </div>
-        )}
-      </div>
-    )}
+          ) : (
+            <div className="recording-container">
+              <button className="stop-button" onClick={stopMeeting}>
+                ⏹ Stop Recording
+              </button>
+            </div>
+          )}
+        </div>
+      
 
       {loading && (
         <div className="loading-overlay">
           <div className="loader-box">
             <div className="spinner"></div>
-
             <h3>Generating Minutes...</h3>
-
             <p>Please wait while AI summarizes your meeting.</p>
           </div>
         </div>
