@@ -54,6 +54,7 @@ function Login() {
       navigate("/home", {
         state: {
           username: response.data.user.name,
+          email: response.data.user.email,
         },
       });
     } catch (error) {
@@ -106,6 +107,8 @@ function Login() {
       navigate("/home", {
         state: {
           username: registerName,
+          email: registerEmail,
+
         },
       });
     } catch (error) {

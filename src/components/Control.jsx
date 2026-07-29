@@ -1,18 +1,52 @@
 import { useState, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import AgoraRTC from "agora-rtc-sdk-ng";
 import axios from "axios";
-import { APP_ID, CHANNEL } from "../config";
+import { APP_ID } from "../config";
 import client from "../agora";
+import { decodeSTT } from "../pages/utils/decodeSTT";
 
-const SpeechRecognition =
-  window.SpeechRecognition || window.webkitSpeechRecognition;
-
-function Control({ transcript, setTranscript }) {
+function Control({
+  role,
+  email,
+  meetingId,
+  transcript,
+  setTranscript,
+})  {
   const [isListening, setIsListening] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const navigate = useNavigate();
 
   const microphoneTrack = useRef(null);
-  const recognition = useRef(null);
   const joining = useRef(false);
+  const channelRef = useRef("");
+  const uidRef = useRef(null);
+  const agentIdRef = useRef("");
+
+  async function handleStreamMessage(uid, data) {
+    try {
+      const decoded = await decodeSTT(data);
+
+      console.log("WORDS:", decoded.words);
+
+      const words = decoded.words || [];
+
+      words.forEach((word) => {
+        if (word.isFinal || word.is_final) {
+          setTranscript((prev) => {
+            if (!prev) return word.text;
+
+            if (prev.endsWith(word.text)) return prev;
+
+            return prev + " " + word.text;
+          });
+        }
+      });
+    } catch (err) {
+      console.error("Decode failed:", err);
+    }
+  }
 
   async function startMeeting() {
     if (joining.current || isListening) return;
@@ -20,102 +54,55 @@ function Control({ transcript, setTranscript }) {
     joining.current = true;
 
     try {
-      // Get Agora Token
-      const response = await axios.get(
-        "https://project-wt9v.onrender.com/api/agora/token",
+      setTranscript("");
+
+      console.log("Meeting ID:", meetingId);
+      console.log("Email:", email);
+      
+      const response = await axios.post(
+        `https://project-wt9v.onrender.com/api/meeting/${meetingId}/join`,
         {
-          params: {
-            channel: CHANNEL,
-            uid: 1,
-          },
+          email,
         }
       );
+      
+      const {
+        token: agoraToken,
+        agoraChannel: channel,
+        uid,
+      } = response.data;
+      channelRef.current = channel;
+      uidRef.current = uid;
 
-      const agoraToken = response.data.token;
-
-      console.log("Agora Token:", agoraToken);
-
-      // Leave previous session if connected
       try {
         await client.leave();
       } catch (e) {}
 
-      console.log("Joining Agora...");
+      client.off("stream-message", handleStreamMessage);
+      client.on("stream-message", handleStreamMessage);
 
-      await client.join(APP_ID, CHANNEL, agoraToken, 1);
-
-      console.log("Joined!");
+      await client.join(APP_ID, meetingId, agoraToken, uid);
 
       microphoneTrack.current =
         await AgoraRTC.createMicrophoneAudioTrack();
 
-      console.log("Microphone Created!");
-
       await client.publish([microphoneTrack.current]);
 
-      console.log("Published!");
-
-      // Start Agora Speech-to-Text
       const sttResponse = await axios.post(
         "https://project-wt9v.onrender.com/api/speech/start",
         {
-          channel: CHANNEL,
-          uid: 1,
+          channel,
+          uid,
         }
       );
 
-      console.log("Speech Started:", sttResponse.data);
-
-      // Browser Speech Recognition
-      if (SpeechRecognition) {
-        recognition.current = new SpeechRecognition();
-
-        recognition.current.continuous = true;
-        recognition.current.interimResults = true;
-        recognition.current.lang = "en-US";
-
-        recognition.current.onstart = () => {
-          console.log("🎤 SpeechRecognition Started");
-        };
-
-        recognition.current.onend = () => {
-          console.log(
-            "🛑 SpeechRecognition Ended at",
-            new Date().toLocaleTimeString()
-          );
-        };
-
-        recognition.current.onerror = (event) => {
-          console.log("❌ SpeechRecognition Error:", event.error);
-        };
-
-        recognition.current.onresult = (event) => {
-          console.log("========== RESULT EVENT ==========");
-          console.log(event);
-
-          let text = "";
-
-          for (
-            let i = event.resultIndex;
-            i < event.results.length;
-            i++
-          ) {
-            text += event.results[i][0].transcript + " ";
-          }
-
-          console.log("Recognized Text:", text);
-
-          setTranscript((prev) => prev + text);
-        };
-
-        recognition.current.start();
-      } else {
-        console.log("SpeechRecognition API not supported.");
-      }
+      agentIdRef.current = sttResponse.data.agent_id;
 
       setIsListening(true);
+
+      console.log("Meeting Started");
     } catch (error) {
-      console.error("Error starting meeting:", error);
+      console.error(error);
     } finally {
       joining.current = false;
     }
@@ -123,10 +110,18 @@ function Control({ transcript, setTranscript }) {
 
   async function stopMeeting() {
     try {
-      if (recognition.current) {
-        recognition.current.stop();
-        recognition.current = null;
+      if (agentIdRef.current) {
+        await axios.post(
+          "https://project-wt9v.onrender.com/api/speech/stop",
+          {
+            agent_id: agentIdRef.current,
+          }
+        );
+
+        console.log("STT stopped");
       }
+
+      client.off("stream-message", handleStreamMessage);
 
       if (microphoneTrack.current) {
         await client.unpublish([microphoneTrack.current]);
@@ -139,31 +134,62 @@ function Control({ transcript, setTranscript }) {
       setIsListening(false);
 
       console.log("Meeting Ended");
-    } catch (error) {
-      console.error(error);
+
+      setLoading(true);
+
+      console.log("Transcript:", transcript);
+
+      const llmResponse = await axios.post(
+        "https://project-wt9v.onrender.com/api/llm/summarize",
+        {
+          transcript,
+        }
+      );
+
+      console.log("LLM Response:", llmResponse.data);
+
+      setLoading(false);
+
+      navigate("/minutes", {
+        state: {
+          transcript,
+          summary: llmResponse.data.summary,
+        },
+      });
+    } catch (err) {
+      setLoading(false);
+      console.error(err);
     }
   }
 
   return (
-    <div className="control">
-      {!isListening ? (
-        <button
-          className="start-button"
-          onClick={startMeeting}
-        >
-          🎤 Start Recording
-        </button>
-      ) : (
-        <div className="recording-container">
-          <button
-            className="stop-button"
-            onClick={stopMeeting}
-          >
-            ⏹ Stop Recording
-          </button>
+    <>
+       
+        <div className="control">
+          {!isListening ? (
+            <button className="start-button" onClick={startMeeting}>
+              🎤 Start Recording
+            </button>
+          ) : (
+            <div className="recording-container">
+              <button className="stop-button" onClick={stopMeeting}>
+                ⏹ Stop Recording
+              </button>
+            </div>
+          )}
+        </div>
+      
+
+      {loading && (
+        <div className="loading-overlay">
+          <div className="loader-box">
+            <div className="spinner"></div>
+            <h3>Generating Minutes...</h3>
+            <p>Please wait while AI summarizes your meeting.</p>
+          </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
 
