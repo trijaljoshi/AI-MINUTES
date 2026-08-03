@@ -36,13 +36,15 @@ function Control({
         if (word.isFinal || word.is_final) {
           setTranscript((prev) => {
             if (!prev) return word.text;
-
+      
             if (prev.endsWith(word.text)) return prev;
-
+      
             return prev + " " + word.text;
           });
         }
       });
+ 
+        
     } catch (err) {
       console.error("Decode failed:", err);
     }
@@ -59,13 +61,19 @@ function Control({
       console.log("Meeting ID:", meetingId);
       console.log("Email:", email);
       
+      const token = localStorage.getItem("token");
+
       const response = await axios.post(
         `https://project-wt9v.onrender.com/api/meeting/${meetingId}/join`,
         {
           email,
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         }
-      );
-      
+      );      
       const {
         token: agoraToken,
         agoraChannel: channel,
@@ -88,17 +96,17 @@ function Control({
 
       await client.publish([microphoneTrack.current]);
 
-      const sttResponse = await axios.post(
-        "https://project-wt9v.onrender.com/api/speech/start",
-        {
-          channel,
-          uid,
-        }
-      );
-
-      agentIdRef.current = sttResponse.data.agent_id;
-
-      setIsListening(true);
+      if (role === "host") {
+        const sttResponse = await axios.post(
+          "https://project-wt9v.onrender.com/api/speech/start",
+          {
+            channel,
+            uid,
+          }
+        );
+      
+        agentIdRef.current = sttResponse.data.agent_id;
+      }      setIsListening(true);
 
       console.log("Meeting Started");
     } catch (error) {

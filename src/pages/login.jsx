@@ -2,9 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Header from "../components/Header";
 import axios from "axios";
+import { useSearchParams } from "react-router-dom";
 
+
+ 
 function Login() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const meetingId = searchParams.get("meetingId");
+
+
+  
 
   const [option, setOption] = useState("");
   const [loading, setLoading] = useState(false);
@@ -51,13 +59,17 @@ function Login() {
 
       localStorage.setItem("token", response.data.token);
 
-      navigate("/home", {
+      if (meetingId) {
+        navigate(`/meeting/${meetingId}`);
+      } else {
+        navigate("/home", {
         state: {
           username: response.data.user.name,
           email: response.data.user.email,
         },
       });
-    } catch (error) {
+    } 
+  }catch (error) {
       alert(error.response?.data?.message || "Login Failed");
     } finally {
       setLoading(false);
@@ -104,13 +116,16 @@ function Login() {
         }
       );
 
-      navigate("/home", {
-        state: {
-          username: registerName,
-          email: registerEmail,
-
-        },
-      });
+      if (meetingId) {
+        navigate(`/meeting/${meetingId}`);
+      } else {
+        navigate("/home", {
+          state: {
+            username: registerName,
+            email: registerEmail,
+          },
+        });
+      }
     } catch (error) {
       alert(error.response?.data?.message || "Registration Failed");
     } finally {
@@ -122,7 +137,7 @@ function Login() {
     <div className="login-page">
       <div className="header">
         <Header />
-        <hr />
+         
       </div>
 
       <div className="login-card">

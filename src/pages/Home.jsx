@@ -123,17 +123,38 @@ function Home() {
     }
   }
 
-  function startMeeting() {
-    navigate(`/meeting/${meetingId}`, {
-      state: {
-        username,
-        email,
-        role: "host",
-        title,
-      },
-    });
-
-  }return (
+  const startMeeting = async () => {
+ 
+    try {
+      const token = localStorage.getItem("token");
+  
+      await axios.post(
+        `https://project-wt9v.onrender.com/api/meeting/${meetingId}/start`,
+        {},
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+  
+      navigate(`/meeting/${meetingId}`, {
+        state: {
+          username,
+          email,
+          role: "host",
+          title,
+        },
+      });
+    } catch (error) {
+      console.error(error);
+  
+      alert(
+        error.response?.data?.message || "Failed to start meeting"
+      );
+    }
+  };
+  return (
     <div className="page">
       <div className="header">
         <Header />
@@ -261,7 +282,7 @@ function Home() {
 
             <h3>Creating Meeting...</h3>
 
-            <p>Please wait while invitations are being sent.</p>
+            <p>Creating meeting Please wait....</p>
           </div>
         </div>
       )}

@@ -45,7 +45,6 @@ function Minutes() {
     <div>
       <div className="header">
         <Header />
-        <hr />
       </div>
 
       <br />
