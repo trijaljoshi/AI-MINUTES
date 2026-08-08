@@ -14,13 +14,33 @@ function Meeting() {
   const title = location.state?.title || "AI MINUTES OF MEETING";
 
   const [email, setEmail] = useState(location.state?.email || "");
+  const [name, setName] = useState(location.state?.username || "");
   const [role, setRole] = useState(location.state?.role || "guest");
 
   const [transcript, setTranscript] = useState("");
   const [loading, setLoading] = useState(true);
+  const [participants, setParticipants] = useState([]);
   useEffect(() => {
-    socket.emit("join-meeting", meetingId);
+    if (role === "guest") return;
   
+    socket.emit("join-meeting", {
+      meetingId,
+      name,
+      role,
+      email,
+    });
+    
+  
+    socket.on("participants-updated", (list) => {
+      setParticipants(list);
+    });
+  
+    return () => {
+      socket.off("participants-updated");
+    };
+  }, [role, meetingId, name, email]);
+  useEffect(() => {
+
     socket.on("transcript", (data) => {
       setTranscript((prev) => {
         if (!prev) {
@@ -34,8 +54,8 @@ function Meeting() {
     return () => {
       socket.off("transcript");
     };
-  }, [meetingId]);
   
+  }, [meetingId]);  
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -72,6 +92,7 @@ function Meeting() {
 
       setRole("participant");
       setEmail(response.data.member.email);
+      setName(response.data.member.name);
 
       alert("Joined successfully!");
     } catch (err) {
@@ -127,7 +148,17 @@ function Meeting() {
               readOnly
               placeholder="Transcript will appear here..."
             />
+            <div className="participants">
+    <h3>Participants ({participants.length})</h3>
+
+    {participants.map((p) => (
+        <div key={p.socketId}>
+            👤 {p.name}
+        </div>
+    ))}
+</div>
           </>
+          
         )}
       </div>
     </div>

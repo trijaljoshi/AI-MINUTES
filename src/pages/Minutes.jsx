@@ -1,18 +1,20 @@
 import Header from "../components/Header";
 import { useLocation } from "react-router-dom";
 import axios from "axios";
+import Meeting from "./Meeting";
 
 function Minutes() {
   const location = useLocation();
 
   const transcript = location.state?.transcript || "";
   const summary = location.state?.summary || "";
+  const meetingId = location.state?.meetingId || "";
 
   const handleGeneratePdf = async () => {
-    try {
+    try {console.log("Meeting ID:", meetingId);
       const response = await axios.post(
   "https://project-wt9v.onrender.com/api/pdf/generate",
-  {
+  { meetingId,
     geminiResponse: summary,
   },
   {
