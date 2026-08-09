@@ -23,39 +23,110 @@ function Meeting() {
   useEffect(() => {
     if (role === "guest") return;
   
+    console.log("=================================");
+    console.log("🔵 SOCKET JOIN ATTEMPT");
+    console.log("Meeting ID:", meetingId);
+    console.log("Name:", name);
+    console.log("Role:", role);
+    console.log("Email:", email);
+    console.log("Socket ID:", socket.id);
+    console.log("Socket connected:", socket.connected);
+    console.log("=================================");
+  
     socket.emit("join-meeting", {
       meetingId,
       name,
       role,
       email,
     });
-    
   
-    socket.on("participants-updated", (list) => {
+    console.log("📤 join-meeting event emitted");
+  
+    const handleParticipantsUpdated = (list) => {
+      console.log("👥 PARTICIPANTS UPDATED:", list);
       setParticipants(list);
-    });
+    };
+  
+    socket.on(
+      "participants-updated",
+      handleParticipantsUpdated
+    );
   
     return () => {
-      socket.off("participants-updated");
+      socket.off(
+        "participants-updated",
+        handleParticipantsUpdated
+      );
     };
-  }, [role, meetingId, name, email]);
+  }, [
+    role,
+    meetingId,
+    name,
+    email,
+  ]);
+  
   useEffect(() => {
 
-    socket.on("transcript", (data) => {
+    const handleTranscript = (data) => {
+      console.log(
+        "Transcript received from socket:",
+        data
+      );
+  
       setTranscript((prev) => {
         if (!prev) {
-          return `${data.speaker}: ${data.text}`;
+          return data.text;
         }
   
-        return `${prev}\n${data.speaker}: ${data.text}`;
+        return `${prev} ${data.text}`;
       });
-    });
-  
-    return () => {
-      socket.off("transcript");
     };
   
-  }, [meetingId]);  
+    const handleRecordingStarted = () => {
+      console.log(
+        "Host started recording"
+      );
+    };
+  
+    const handleRecordingStopped = () => {
+      console.log(
+        "Host stopped recording"
+      );
+    };
+  
+    socket.on(
+      "transcript",
+      handleTranscript
+    );
+  
+    socket.on(
+      "recording-started",
+      handleRecordingStarted
+    );
+  
+    socket.on(
+      "recording-stopped",
+      handleRecordingStopped
+    );
+  
+    return () => {
+      socket.off(
+        "transcript",
+        handleTranscript
+      );
+  
+      socket.off(
+        "recording-started",
+        handleRecordingStarted
+      );
+  
+      socket.off(
+        "recording-stopped",
+        handleRecordingStopped
+      );
+    };
+  
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem("token");

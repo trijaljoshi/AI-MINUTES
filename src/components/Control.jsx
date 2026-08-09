@@ -27,24 +27,42 @@ function Control({
   async function handleStreamMessage(uid, data) {
     try {
       const decoded = await decodeSTT(data);
-
+  
       console.log("WORDS:", decoded.words);
-
+  
       const words = decoded.words || [];
-
+  
       words.forEach((word) => {
         if (word.isFinal || word.is_final) {
+  
+          console.log("FINAL WORD:", word.text);
+  
+          // Send transcript to everyone in this meeting
+          console.log("🚀 SENDING TRANSCRIPT:", {
+            meetingId,
+            text: word.text,
+          });
+          
+          socket.emit("transcript", {
+            meetingId,
+            text: word.text,
+          });
+  
+          // Update this user's own transcript
           setTranscript((prev) => {
-            if (!prev) return word.text;
-      
-            if (prev.endsWith(word.text)) return prev;
-      
+            if (!prev) {
+              return word.text;
+            }
+  
+            if (prev.endsWith(word.text)) {
+              return prev;
+            }
+  
             return prev + " " + word.text;
           });
         }
       });
- 
-        
+  
     } catch (err) {
       console.error("Decode failed:", err);
     }
@@ -118,9 +136,8 @@ function Control({
           }
          );
   
-        agentIdRef.current = sttResponse.data.agent_id;
-        socket.emit("recording-started", meetingId);
-      }
+         agentIdRef.current = sttResponse.data.agent_id;
+         socket.emit("recording-started", meetingId);      }
   
       console.log("Meeting Started");
     } catch (error) {
@@ -190,32 +207,57 @@ function Control({
   }
   useEffect(() => {
 
-    async function handleRecordingStarted(){
+    async function handleRecordingStarted() {
   
-      console.log("Recording started received");
+      console.log(
+        "🔥 RECORDING STARTED EVENT RECEIVED"
+      );
   
-      if(role === "host") return;
+      console.log(
+        "Current role:",
+        role
+      );
   
-      if(!isListening){
+      console.log(
+        "Current isListening:",
+        isListening
+      );
   
-        try{
+      // Host is already in Agora
+      if (role === "host") {
+        console.log(
+          "Host received event - ignoring"
+        );
+        return;
+      }
+  
+      // Participant joins automatically
+      if (!isListening) {
+  
+        console.log(
+          "Participant joining Agora..."
+        );
+  
+        try {
+  
           await joinRtc();
-        }
-        catch(err){
-          console.error(err);
-        }
   
+        } catch (error) {
+  
+          console.error(
+            "Participant failed to join Agora:",
+            error
+          );
+        }
       }
     }
-  
   
     socket.on(
       "recording-started",
       handleRecordingStarted
     );
   
-  
-    return ()=>{
+    return () => {
   
       socket.off(
         "recording-started",
@@ -224,9 +266,10 @@ function Control({
   
     };
   
-  
-  },[role,isListening]);
-
+  }, [
+    role,
+    isListening
+  ]);
   useEffect(() => {
     async function handleRecordingStopped() {
       if (role === "host") return;
@@ -262,22 +305,65 @@ socket.on(
     };
   }, [role]);
   useEffect(() => {
-    async function handleUserPublished(user, mediaType) {
-      await client.subscribe(user, mediaType);
+
+    async function handleUserPublished(
+      user,
+      mediaType
+    ) {
   
-      if (mediaType === "audio") {
-        user.audioTrack.play();
-        console.log("Playing audio from", user.uid);
+      console.log(
+        "🔥 REMOTE USER PUBLISHED:",
+        user.uid,
+        mediaType
+      );
+  
+      try {
+  
+        await client.subscribe(
+          user,
+          mediaType
+        );
+  
+        console.log(
+          "✅ SUBSCRIBED TO:",
+          user.uid,
+          mediaType
+        );
+  
+        if (mediaType === "audio") {
+  
+          user.audioTrack.play();
+  
+          console.log(
+            "🔊 PLAYING AUDIO FROM:",
+            user.uid
+          );
+        }
+  
+      } catch (error) {
+  
+        console.error(
+          "❌ Failed to subscribe:",
+          error
+        );
       }
     }
   
-    client.on("user-published", handleUserPublished);
+    client.on(
+      "user-published",
+      handleUserPublished
+    );
   
     return () => {
-      client.off("user-published", handleUserPublished);
+  
+      client.off(
+        "user-published",
+        handleUserPublished
+      );
+  
     };
+  
   }, []);
-
 
   async function leaveMeeting() {
     try {
